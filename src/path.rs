@@ -253,6 +253,7 @@ mod tests {
     // ── traversal ──────────────────────────────────────────
 
     #[test]
+    #[cfg(unix)]
     fn rejects_traversal() {
         assert_eq!(normalize_local_path("/foo/../bar"), Err(PathError::Traversal));
         assert_eq!(normalize_local_path("/.."), Err(PathError::Traversal));
@@ -261,11 +262,17 @@ mod tests {
         assert_eq!(normalize_local_path("//foo//..//bar"), Err(PathError::Traversal));
         // dots + traversal
         assert_eq!(normalize_local_path("/./foo/./../bar"), Err(PathError::Traversal));
-        #[cfg(windows)]
-        assert_eq!(normalize_local_path("/c/foo/../bar"), Err(PathError::Traversal));
     }
 
     #[test]
+    #[cfg(windows)]
+    fn windows_rejects_traversal() {
+        assert_eq!(normalize_local_path("/c/foo/../bar"), Err(PathError::Traversal));
+        assert_eq!(normalize_local_path("/c/.."), Err(PathError::Traversal));
+    }
+
+    #[test]
+    #[cfg(unix)]
     fn non_traversal_dot_variants() {
         // Three dots is a valid filename (not parent dir)
         assert_eq!(normalize_local_path("/foo/.../bar").unwrap(), "/foo/.../bar");
@@ -277,12 +284,14 @@ mod tests {
     // ── normalization ──────────────────────────────────────
 
     #[test]
+    #[cfg(unix)]
     fn normalization_double_slashes() {
         assert_eq!(normalize_local_path("//foo//bar").unwrap(), "/foo/bar");
         assert_eq!(normalize_local_path("///foo").unwrap(), "/foo");
     }
 
     #[test]
+    #[cfg(unix)]
     fn normalization_dot_components() {
         assert_eq!(normalize_local_path("/foo/./bar").unwrap(), "/foo/bar");
         assert_eq!(normalize_local_path("/foo/././bar").unwrap(), "/foo/bar");
@@ -291,12 +300,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn normalization_trailing_slash() {
         assert_eq!(normalize_local_path("/foo/bar/").unwrap(), "/foo/bar");
         assert_eq!(normalize_local_path("/foo/").unwrap(), "/foo");
     }
 
     #[test]
+    #[cfg(unix)]
     fn normalization_leading_whitespace() {
         assert_eq!(normalize_local_path("  /foo/bar").unwrap(), "/foo/bar");
         assert_eq!(normalize_local_path("\t/foo/bar").unwrap(), "/foo/bar");
@@ -523,6 +534,7 @@ mod tests {
     // ═══════════════════════════════════════════════════════
 
     #[test]
+    #[cfg(unix)]
     fn roundtrip() {
         let cases = vec!["/foo/bar", "/foo", "/a/b/c/d/e"];
         for case in cases {
@@ -556,6 +568,7 @@ mod tests {
     /// 验证 normalize_local_path 的输出 → internal_to_native 的链路。
     /// 所有通过 normalize 的路径都应能安全转换。
     #[test]
+    #[cfg(unix)]
     fn normalize_then_convert_roundtrip() {
         let cases = vec![
             "/foo/bar",
