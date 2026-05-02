@@ -1,0 +1,8 @@
+pre-commit:
+  parallel: true
+  commands:
+    rustfmt:
+      tags: rust fmt
+      glob: "*.rs"
+      run: scripts/lefthook-rustfmt.sh {staged_files}
+      stage_fixed: true

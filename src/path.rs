@@ -565,7 +565,7 @@ mod tests {
         }
     }
 
-    /// 验证 normalize_local_path 的输出 → internal_to_native 的链路。
+    /// 验证 `normalize_local_path` 的输出 → `internal_to_native` 的链路。
     /// 所有通过 normalize 的路径都应能安全转换。
     #[test]
     #[cfg(unix)]

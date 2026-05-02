@@ -4,6 +4,3 @@
 //! 前端可见的 DTO 由 `rust-server` 内部 wrapper 通过 ts-rs 导出。
 
 pub mod path;
-pub mod source;
-
-pub use source::is_local_source;
