@@ -123,7 +123,7 @@ pub fn is_local_root(input: &str) -> bool {
     #[cfg(windows)]
     {
         let bytes = trimmed.as_bytes();
-        bytes.len() == 2 && bytes[0] == b'/' && bytes[1].is_ascii_alphabetic()
+        bytes.len() == 2 && bytes[0] == b'/' && bytes[1].is_ascii_lowercase()
     }
     #[cfg(not(windows))]
     {
@@ -217,7 +217,9 @@ pub fn native_to_internal(native: &str) -> String {
         let bytes = native.as_bytes();
         if bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':' {
             let drive = (bytes[0] as char).to_ascii_lowercase();
-            let rest = native[2..].trim_start_matches(['\\', '/']);
+            let rest = native[2..]
+                .trim_start_matches(['\\', '/'])
+                .trim_end_matches(['\\', '/']);
             if rest.is_empty() {
                 format!("/{drive}")
             } else {
