@@ -1,0 +1,10 @@
+[package]
+name = "tokimo-package-utils"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/tokimo-lab/tokimo-package-utils"
+description = "Common utilities for tokimo packages: cross-OS local path handling, VFS source classification"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
