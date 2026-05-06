@@ -611,3 +611,89 @@ mod tests {
         }
     }
 }
+
+// ── Sandbox guest path helpers ──────────────────────────
+//
+// AI sandbox runs Linux semantics (paths like /data/...) but the host server
+// may run Windows. `std::path::Path::is_absolute()` is host-OS-specific and
+// returns false for POSIX paths on Windows hosts, which would cause absolute
+// guest paths to be wrongly concatenated to the workspace prefix.
+//
+// `is_guest_absolute` is OS-independent and recognizes everything an LLM
+// might emit as "absolute":
+//   * POSIX:        /home/foo
+//   * UNC / root:   \\server\share, \foo
+//   * Windows drive: C:\foo, c:/foo, F:/Users
+//
+// Windows-style paths inside a Linux sandbox don't physically exist; treating
+// them as absolute means the sandbox stat will return "not found" — the
+// correct behavior (LLM gets accurate feedback rather than a silently
+// rebased path).
+
+/// True if `path` looks like an absolute path under any common convention.
+pub fn is_guest_absolute(path: &str) -> bool {
+    if path.starts_with('/') || path.starts_with('\\') {
+        return true;
+    }
+    let b = path.as_bytes();
+    b.len() >= 2 && b[0].is_ascii_alphabetic() && b[1] == b':'
+}
+
+/// Resolve a user-supplied path against a sandbox workspace.
+///
+/// Absolute paths (any convention) are returned untouched. Relative paths
+/// are joined under `workspace_guest` with a single `/` separator.
+pub fn resolve_under_guest(workspace_guest: &str, path: &str) -> String {
+    if is_guest_absolute(path) {
+        return path.to_string();
+    }
+    let trimmed = workspace_guest.trim_end_matches('/');
+    format!("{trimmed}/{path}")
+}
+
+#[cfg(test)]
+mod sandbox_path_tests {
+    use super::*;
+
+    #[test]
+    fn posix_absolute() {
+        assert!(is_guest_absolute("/home/foo"));
+        assert!(is_guest_absolute("/"));
+    }
+
+    #[test]
+    fn windows_drive_absolute() {
+        assert!(is_guest_absolute("C:\\foo"));
+        assert!(is_guest_absolute("c:/foo"));
+        assert!(is_guest_absolute("F:/Users"));
+        assert!(is_guest_absolute("z:"));
+    }
+
+    #[test]
+    fn unc_and_root_absolute() {
+        assert!(is_guest_absolute("\\\\server\\share"));
+        assert!(is_guest_absolute("\\foo"));
+    }
+
+    #[test]
+    fn relative_is_not_absolute() {
+        assert!(!is_guest_absolute("src/main.rs"));
+        assert!(!is_guest_absolute("foo"));
+        assert!(!is_guest_absolute(""));
+        assert!(!is_guest_absolute("1:bad"));
+        assert!(!is_guest_absolute("ab:bad"));
+    }
+
+    #[test]
+    fn resolve_keeps_absolute() {
+        assert_eq!(resolve_under_guest("/work", "/etc/foo"), "/etc/foo");
+        assert_eq!(resolve_under_guest("/work", "C:\\foo"), "C:\\foo");
+    }
+
+    #[test]
+    fn resolve_joins_relative() {
+        assert_eq!(resolve_under_guest("/work", "src/main.rs"), "/work/src/main.rs");
+        assert_eq!(resolve_under_guest("/work/", "a.txt"), "/work/a.txt");
+    }
+}
+
