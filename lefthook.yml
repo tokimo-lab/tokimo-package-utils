@@ -6,3 +6,12 @@ pre-commit:
       glob: "*.rs"
       run: scripts/lefthook-rustfmt.sh {staged_files}
       stage_fixed: true
+
+# pre-push 镜像 CI 关键检查，阻止 lint/fmt/clippy 不绿就推到远端，避免 CI 邮件刷屏。
+# 紧急情况可以 `git push --no-verify` 绕过。
+pre-push:
+  commands:
+    fmt-check:
+      run: cargo fmt -p tokimo-package-utils -- --check
+    clippy:
+      run: cargo clippy -p tokimo-package-utils --lib --bins --tests -- -D warnings
